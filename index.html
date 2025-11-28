@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PEM Electrolyzer - MPC Dashboard</title>
+    <link rel="stylesheet" href="main.css">
+    <link rel="stylesheet" href="components.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <div class="header-left">
+                <h1><i class="fas fa-water"></i> PEM Electrolyzer Control System</h1>
+                <p class="subtitle">Real-time MPC Comparison Dashboard</p>
+            </div>
+            <div class="header-right">
+                <div class="status-indicators">
+                    <div class="status-item" id="mqtt-status">
+                        <i class="fas fa-satellite-dish"></i>
+                        <span>MQTT: <span class="status-value">Disconnected</span></span>
+                    </div>
+                    <div class="status-item" id="matlab-status">
+                        <i class="fas fa-cog"></i>
+                        <span>MATLAB: <span class="status-value">Offline</span></span>
+                    </div>
+                    <div class="status-item" id="arduino-status">
+                        <i class="fas fa-microchip"></i>
+                        <span>Arduino: <span class="status-value">Offline</span></span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="dashboard-main">
+            <!-- Left Panel: System Overview -->
+            <section class="panel system-overview">
+                <h2><i class="fas fa-tachometer-alt"></i> System Overview</h2>
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value" id="h2-production">0.0</div>
+                        <div class="metric-label">H₂ Production (L/h)</div>
+                        <div class="metric-trend" id="h2-trend"></div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="o2-production">0.0</div>
+                        <div class="metric-label">O₂ Production (L/h)</div>
+                        <div class="metric-trend" id="o2-trend"></div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="stack-current">0.0</div>
+                        <div class="metric-label">Stack Current (A)</div>
+                        <div class="metric-progress">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="current-progress"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="stack-temperature">0.0</div>
+                        <div class="metric-label">Stack Temperature (°C)</div>
+                        <div class="metric-progress">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="temp-progress"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Real-time Charts -->
+                <div class="charts-container">
+                    <div class="chart-wrapper">
+                        <h3>Production Rates Over Time</h3>
+                        <canvas id="production-chart"></canvas>
+                    </div>
+                    <div class="chart-wrapper">
+                        <h3>Stack Parameters</h3>
+                        <canvas id="stack-params-chart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Panel: MPC Control & Comparison -->
+            <section class="panel mpc-control">
+                <h2><i class="fas fa-brain"></i> MPC Control Strategies</h2>
+                
+                <!-- MPC Mode Selector -->
+                <div class="control-section">
+                    <h3>Control Mode</h3>
+                    <div class="mode-selector">
+                        <button class="mode-btn active" data-mode="HEMPC">HE-MPC</button>
+                        <button class="mode-btn" data-mode="DETERMINISTIC">Deterministic MPC</button>
+                        <button class="mode-btn" data-mode="STOCHASTIC">Stochastic MPC</button>
+                        <button class="mode-btn" data-mode="HYBRID">Hybrid MPC</button>
+                        <button class="mode-btn" data-mode="MANUAL">Manual</button>
+                    </div>
+                </div>
+
+                <!-- MPC Parameters -->
+                <div class="control-section">
+                    <h3>MPC Parameters</h3>
+                    <div class="param-grid">
+                        <div class="param-item">
+                            <label>Horizon Length</label>
+                            <input type="number" id="horizon-length" value="10" min="5" max="50">
+                        </div>
+                        <div class="param-item">
+                            <label>Sample Time (s)</label>
+                            <input type="number" id="sample-time" value="0.1" step="0.1" min="0.1" max="10">
+                        </div>
+                        <div class="param-item">
+                            <label>Q Weight</label>
+                            <input type="number" id="q-weight" value="10.0" step="0.1" min="0.1" max="100">
+                        </div>
+                        <div class="param-item">
+                            <label>R Weight</label>
+                            <input type="number" id="r-weight" value="1.0" step="0.1" min="0.1" max="10">
+                        </div>
+                    </div>
+                    <button class="btn-primary" id="apply-params">
+                        <i class="fas fa-play"></i> Apply Parameters
+                    </button>
+                </div>
+
+                <!-- MPC Performance Comparison -->
+                <div class="control-section">
+                    <h3>MPC Performance Comparison</h3>
+                    <div class="comparison-metrics">
+                        <div class="comparison-grid">
+                            <div class="comparison-header">Strategy</div>
+                            <div class="comparison-header">Cost ($)</div>
+                            <div class="comparison-header">H₂ Production</div>
+                            <div class="comparison-header">Efficiency</div>
+                            <div class="comparison-header">Computation Time</div>
+                            
+                            <!-- HE-MPC Row -->
+                            <div class="comparison-row hempc-row">
+                                <div class="strategy-name">HE-MPC</div>
+                                <div class="metric-value" id="hempc-cost">-</div>
+                                <div class="metric-value" id="hempc-production">-</div>
+                                <div class="metric-value" id="hempc-efficiency">-</div>
+                                <div class="metric-value" id="hempc-computation">-</div>
+                            </div>
+                            
+                            <!-- Deterministic MPC Row -->
+                            <div class="comparison-row deterministic-row">
+                                <div class="strategy-name">Deterministic MPC</div>
+                                <div class="metric-value" id="det-cost">-</div>
+                                <div class="metric-value" id="det-production">-</div>
+                                <div class="metric-value" id="det-efficiency">-</div>
+                                <div class="metric-value" id="det-computation">-</div>
+                            </div>
+                            
+                            <!-- Stochastic MPC Row -->
+                            <div class="comparison-row stochastic-row">
+                                <div class="strategy-name">Stochastic MPC</div>
+                                <div class="metric-value" id="stoch-cost">-</div>
+                                <div class="metric-value" id="stoch-production">-</div>
+                                <div class="metric-value" id="stoch-efficiency">-</div>
+                                <div class="metric-value" id="stoch-computation">-</div>
+                            </div>
+                            
+                            <!-- Hybrid MPC Row -->
+                            <div class="comparison-row hybrid-row">
+                                <div class="strategy-name">Hybrid MPC</div>
+                                <div class="metric-value" id="hybrid-cost">-</div>
+                                <div class="metric-value" id="hybrid-production">-</div>
+                                <div class="metric-value" id="hybrid-efficiency">-</div>
+                                <div class="metric-value" id="hybrid-computation">-</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Control Actions -->
+                <div class="control-section">
+                    <h3>Manual Control</h3>
+                    <div class="manual-controls">
+                        <div class="slider-control">
+                            <label>Production Setpoint (%)</label>
+                            <input type="range" id="production-slider" min="0" max="100" value="50" class="slider">
+                            <span id="slider-value">50%</span>
+                        </div>
+                        <div class="slider-control">
+                            <label>Current Setpoint (A)</label>
+                            <input type="range" id="current-slider" min="100" max="200" value="150" class="slider">
+                            <span id="current-value">150A</span>
+                        </div>
+                        <div class="control-buttons">
+                            <button class="btn-success" id="start-system">
+                                <i class="fas fa-play"></i> Start System
+                            </button>
+                            <button class="btn-danger" id="stop-system">
+                                <i class="fas fa-stop"></i> Stop System
+                            </button>
+                            <button class="btn-warning" id="emergency-stop">
+                                <i class="fas fa-exclamation-triangle"></i> Emergency Stop
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="dashboard-footer">
+            <div class="footer-info">
+                <span>PEM Electrolyzer Control System | HE-MPC Research Platform</span>
+                <span id="last-update">Last update: Never</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- JavaScript Files -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="charts.js"></script>
+    <script src="mqtt.js"></script>
+    <script src="mpc-comparator.js"></script>
+    <script src="mpc-dashboard.js"></script>
+    <script src="neural-mpc.js"></script>
+    <script src="mpc-algorithms.js"></script>
+</body>
+</html>
